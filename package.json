@@ -1,0 +1,13 @@
+{
+  "name": "book-store-mern-stack",
+  "version": "1.0.0",
+  "description": "book",
+  "main": "backend/index.js",
+  "scripts": {
+    "install": "cd frontend && npm i && cd ../backend && npm i",
+    "develop": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm dev\"",
+    "start": "node backend/index.js"
+  },
+  "author": "",
+  "license": "ISC"
+}
