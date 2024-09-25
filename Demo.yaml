@@ -1,0 +1,53 @@
+trigger:
+  branches:
+    include:
+      - main  # Trigger the pipeline on changes to the main branch
+
+pool:
+  vmImage: 'ubuntu-latest'  # Use Ubuntu as the build agent OS
+
+variables:
+  - name: 'TF_VAR_resource_group_name'
+    value: 'your-resource-group'  # Your resource group name
+  - name: 'TF_VAR_location'
+    value: 'East US'  # Your resource location
+
+stages:
+  - stage: Terraform
+    jobs:
+      - job: TerraformPlanAndApply
+        displayName: "Terraform Plan and Apply"
+        steps:
+
+        # Step 1: Install Terraform
+        - task: HashiCorpTerraformInstaller@0
+          inputs:
+            terraformVersion: 'latest'
+
+        # Step 2: Initialize Terraform
+        - task: TerraformTaskV2@2
+          inputs:
+            provider: 'azurerm'
+            command: 'init'
+            workingDirectory: './terraform'  # Path to your .tf files in the repo
+            backendServiceArm: 'your-service-connection-name'  # Azure service connection name
+
+        # Step 3: Run Terraform Plan
+        - task: TerraformTaskV2@2
+          inputs:
+            provider: 'azurerm'
+            command: 'plan'
+            workingDirectory: './terraform'
+            backendServiceArm: 'your-service-connection-name'
+            environmentServiceNameAzureRM: 'your-service-connection-name'
+
+        # Step 4: Run Terraform Apply
+        - task: TerraformTaskV2@2
+          inputs:
+            provider: 'azurerm'
+            command: 'apply'
+            workingDirectory: './terraform'
+            backendServiceArm: 'your-service-connection-name'
+            environmentServiceNameAzureRM: 'your-service-connection-name'
+            additionalArgs: '-auto-approve'  # Auto-approve the plan
+
