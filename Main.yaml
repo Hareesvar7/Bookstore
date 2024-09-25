@@ -1,0 +1,60 @@
+trigger:
+  branches:
+    include:
+      - main  # Trigger on the main branch
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  dockerImageName: 'flask-hello-world'  # Docker image name
+  acrLoginServer: 'your-acr-name.azurecr.io'  # Your ACR login server
+  acrRepositoryName: 'harihan'  # ACR repository name
+  sonarProjectKey: 'your-sonarqube-project-key'  # Your SonarQube project key
+  sonarHostUrl: 'https://your-sonarqube-instance.com'  # Your SonarQube URL
+  sonarLoginToken: 'your-sonarqube-token'  # SonarQube authentication token
+
+steps:
+  # Step 1: Checkout the code from the repository
+  - task: Checkout@1
+    displayName: 'Checkout Code'
+
+  # Step 2: Run SonarQube Analysis
+  - task: SonarQubePrepare@5
+    inputs:
+      SonarQube: 'SonarQubeServiceConnection'  # SonarQube service connection name
+      scannerMode: 'CLI'
+      configMode: 'manual'
+      cliProjectKey: '$(sonarProjectKey)'
+      cliProjectName: 'Flask Hello World'
+      cliSources: '.'
+
+  # Step 3: Build Docker Image
+  - task: Docker@2
+    displayName: 'Build Docker Image'
+    inputs:
+      containerRegistry: 'ACRServiceConnection'  # Azure service connection for ACR
+      repository: '$(acrRepositoryName)/$(dockerImageName)'  # ACR repository path
+      command: 'build'
+      Dockerfile: '**/Dockerfile'  # Path to Dockerfile (assuming in root or adjust as needed)
+      tags: |
+        $(Build.BuildId)  # Use build ID as a tag
+
+  # Step 4: Run SonarQube analysis on the code
+  - task: SonarQubeAnalyze@5
+    displayName: 'Run SonarQube Code Analysis'
+
+  # Step 5: Push Docker Image to ACR
+  - task: Docker@2
+    displayName: 'Push Docker Image to ACR'
+    inputs:
+      containerRegistry: 'ACRServiceConnection'
+      repository: '$(acrRepositoryName)/$(dockerImageName)'
+      command: 'push'
+      tags: |
+        $(Build.BuildId)
+
+  # Step 6: Publish SonarQube Quality Gate result
+  - task: SonarQubePublish@5
+    inputs:
+      pollingTimeoutSec: '300'
